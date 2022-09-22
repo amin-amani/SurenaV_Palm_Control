@@ -19,40 +19,49 @@
 #define BMP_CS 15
 
 
-//====================================================================================================================
-    spi_transaction_t t;
-    uint8_t mybuff=0;
-    spi_device_handle_t spi;
-    char *rxBuff;
+spi_device_handle_t spi;
+//---------------------------------------------------------------------------------------------
 void BMP280Init()
 {
-rxBuff = heap_caps_malloc(4, MALLOC_CAP_DMA);
+
+}
+//====================================================================================================================
+
+void SPISetChipSelect(uint8_t value )
+{
+ gpio_set_level(BMP_CS, value);
+}
+//====================================================================================================================
+uint8_t SPISend(uint8_t registerAddress)
+{
+    spi_transaction_t t;
+    esp_err_t ret;
+    uint8_t rxBuff;
+     memset(&t, 0, sizeof(t));       //Zero out the transaction
+    t.length=8;                     //Command is 8 bits
+    t.tx_buffer=&registerAddress;               //The data is the cmd itself
+    t.rx_buffer=&rxBuff;
+    t.user=(void*)0;                //D/C needs to be set to 0
+    ret=spi_device_polling_transmit(spi, &t);  //Transmit!
+    return rxBuff;
 }
 //====================================================================================================================
 
 uint8_t BMP280ReadRegister(uint8_t registerAddress)
 {
-    esp_err_t ret;
-     memset(&t, 0, sizeof(t));       //Zero out the transaction
-    t.length=8;                     //Command is 8 bits
-    t.tx_buffer=&registerAddress;               //The data is the cmd itself
-    t.rx_buffer=rxBuff;
-    t.user=(void*)0;                //D/C needs to be set to 0
-    gpio_set_level(BMP_CS, 0);
-    ret=spi_device_polling_transmit(spi, &t);  //Transmit!
-    registerAddress=0xff;
-    ret=spi_device_polling_transmit(spi, &t);  //Transmit
-    gpio_set_level(BMP_CS, 1);
-    return rxBuff[0];
+uint8_t result=0;
+SPISetChipSelect(0);
+SPISend(registerAddress);
+result = SPISend(0xff);
+SPISetChipSelect(1);
+return result;
 }
 //====================================================================================================================
 void GPIOInit()
 {
-      
     gpio_pad_select_gpio(BLINK_GPIO);
-    /* Set the GPIO as a push/pull output */
     gpio_set_direction(BLINK_GPIO, GPIO_MODE_OUTPUT);
-       gpio_pad_select_gpio(BMP_CS);
+    gpio_pad_select_gpio(BMP_CS);
     gpio_set_direction(BMP_CS, GPIO_MODE_OUTPUT);
 }
 //====================================================================================================================
