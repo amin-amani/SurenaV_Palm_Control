@@ -9,28 +9,13 @@
 #include "driver/spi_master.h"
 #include "sdkconfig.h"
 #include "driver/uart.h"
-
 #define BLINK_GPIO 2
-#define GPIO_INPUT_IO_0     12
-#define GPIO_INPUT_IO_1     14
-#define GPIO_INPUT_PIN_SEL  ((1ULL<<GPIO_INPUT_IO_0) | (1ULL<<GPIO_INPUT_IO_1))
-
-
-//clk 14 D25
-//miso 12 D32
-//mosi 13 D33
-//cs 15  D26
-
 #define BMP_SCK 14
 #define BMP_MISO 12
 #define BMP_MOSI 13
 #define BMP_CS 15
 
-// from sites
-// #define BMP_SCK 13
-// #define BMP_MISO 12
-// #define BMP_MOSI 11
-// #define BMP_CS 10
+
 
 
 //====================================================================================================================
@@ -49,6 +34,9 @@ GPIOInit();
 esp_err_t ret;
     spi_transaction_t t;
     spi_device_handle_t spi;
+    char *rxBuff;
+    uint8_t mybuff=0xaa;
+rxBuff = heap_caps_malloc(4, MALLOC_CAP_DMA);
     spi_bus_config_t buscfg={
         .miso_io_num=BMP_MISO,
         .mosi_io_num=BMP_MOSI,
@@ -74,13 +62,16 @@ esp_err_t ret;
     ESP_ERROR_CHECK(ret);
     printf("spi_bus_add_device= %d\n",ret);
 while (1)
-{uint8_t mybuff=0xaa;
+{
+
     /* code */  
     memset(&t, 0, sizeof(t));       //Zero out the transaction
     t.length=8;                     //Command is 8 bits
     t.tx_buffer=&mybuff;               //The data is the cmd itself
+    t.rx_buffer=rxBuff;
     t.user=(void*)0;                //D/C needs to be set to 0
     ret=spi_device_polling_transmit(spi, &t);  //Transmit!
+    printf("rx=%d\n",rxBuff[0]);
     assert(ret==ESP_OK);            //Should have had no issues.
     gpio_set_level(BLINK_GPIO, 0);
     vTaskDelay(500 / portTICK_PERIOD_MS);
