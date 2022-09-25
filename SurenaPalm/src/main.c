@@ -21,13 +21,10 @@
 
 spi_device_handle_t spi;
 //---------------------------------------------------------------------------------------------
-void BMP280Init()
-{
 
-}
 //====================================================================================================================
 
-void SPISetChipSelect(uint8_t value )
+void SPISetChipSelect(bool value )
 {
  gpio_set_level(BMP_CS, value);
 }
@@ -65,7 +62,6 @@ void GPIOInit()
     gpio_set_direction(BMP_CS, GPIO_MODE_OUTPUT);
 }
 //====================================================================================================================
-
 void SPIInit()
 {
  esp_err_t ret;
@@ -98,7 +94,11 @@ void app_main()
 {
     GPIOInit();
     SPIInit();
-    BMP280Init();
+    BMP280_config_t bmpconf;
+    bmpconf.SPIChpSelectFunction=SPISetChipSelect;
+    bmpconf.spiSendFunction=SPISend;
+
+    BMP280Init(bmpconf);
 while (1)
 {
     printf("Register ID=%x\n",BMP280ReadRegister(BMP280_REGISTER_CHIPID));

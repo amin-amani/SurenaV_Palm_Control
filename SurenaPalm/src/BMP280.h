@@ -19,3 +19,14 @@
 #define BMP280_REGISTER_CONFIG 0xF5
 #define BMP280_REGISTER_PRESSUREDATA 0xF7
 #define BMP280_REGISTER_TEMPDATA 0xFA
+typedef struct
+{
+uint8_t (*spiSendFunction)(uint8_t);
+void (*SPIChpSelectFunction)(bool value)
+}BMP280_config_t;
+
+static BMP280_config_t BMPConfig;
+void BMP280Init(BMP280_config_t config)
+{
+BMPConfig=config;
+}
