@@ -90,9 +90,14 @@ void app_main()
     bmpconf.spiSendFunction=SPISend;
 
     BMP280Init(bmpconf);
+     printf("Register ID=%x\n",BMP280ReadRegister(0xf5));
+      vTaskDelay(2000 / portTICK_PERIOD_MS);
+      BMP280WriteRegister(0xf5,0xaa);
+
 while (1)
 {
-    printf("Register ID=%x\n",BMP280ReadRegister(BMP280_REGISTER_CHIPID));
+    printf("Register ID=0x%x \n",BMP280ReadRegister(BMP280_REGISTER_CHIPID));
+     printf("Register F5=0x%x\n",BMP280ReadRegister(0xf5));
     gpio_set_level(BLINK_GPIO, 0);
     vTaskDelay(500 / portTICK_PERIOD_MS);
     gpio_set_level(BLINK_GPIO, 1);
