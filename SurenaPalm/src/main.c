@@ -42,17 +42,8 @@ uint8_t SPISend(uint8_t registerAddress)
     ret=spi_device_polling_transmit(spi, &t);  //Transmit!
     return rxBuff;
 }
-//====================================================================================================================
 
-uint8_t BMP280ReadRegister(uint8_t registerAddress)
-{
-uint8_t result=0;
-SPISetChipSelect(0);
-SPISend(registerAddress);
-result = SPISend(0xff);
-SPISetChipSelect(1);
-return result;
-}
+
 //====================================================================================================================
 void GPIOInit()
 {
@@ -102,7 +93,6 @@ void app_main()
 while (1)
 {
     printf("Register ID=%x\n",BMP280ReadRegister(BMP280_REGISTER_CHIPID));
-
     gpio_set_level(BLINK_GPIO, 0);
     vTaskDelay(500 / portTICK_PERIOD_MS);
     gpio_set_level(BLINK_GPIO, 1);
