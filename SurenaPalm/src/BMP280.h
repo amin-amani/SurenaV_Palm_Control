@@ -196,6 +196,57 @@ void BMP280ReadCompensationParameters()
 	compensationParameters.dig_p8 = ((buf[21] << 8) | buf[20]);
 	compensationParameters.dig_p9 = ((buf[23] << 8) | buf[22]);
 }
+//====================================================================================================================
+/**
+ * Calculate sensor temperature from measurement and compensation parameters.
+ * @param uncomp_temp: Raw temperature measurement.
+ * @return Temperature in DegC, resolution is 0.01 DegC. Output value of “5123” equals 51.23 DegC.
+ * */
+int32_t compensate_temperature(int32_t uncomp_temp)
+{
+	int32_t var1, var2;
+	var1 =
+			((((uncomp_temp / 8)
+					- ((int32_t) compensationParameters.dig_t1 << 1)))
+					* ((int32_t) compensationParameters.dig_t2)) / 2048;
+	var2 = (((((uncomp_temp / 16) - ((int32_t) compensationParameters.dig_t1))
+			* ((uncomp_temp / 16) - ((int32_t) compensationParameters.dig_t1)))
+			/ 4096) * ((int32_t) compensationParameters.dig_t3)) / 16384;
+	t_fine = var1 + var2;
+	return (t_fine * 5 + 128) / 256;
+}
+
+/**
+ * Calculate pressure from measurement and compensation parameters.
+ * @param uncomp_pres: Raw pressure measurement.
+ * @return Pressure in Pa as unsigned 32 bit integer in Q24.8 format (24 integer bits and 8 fractional bits).
+ * Output value of “24674867” represents 24674867/256 = 96386.2 Pa = 963.862 hPa
+ * */
+uint32_t compensate_pressure(int32_t uncomp_pres)
+{
+	int64_t var1, var2, p;
+
+	var1 = ((int64_t) (t_fine)) - 128000;
+	var2 = var1 * var1 * (int64_t) compensationParameters.dig_p6;
+	var2 = var2 + ((var1 * (int64_t) compensationParameters.dig_p5) * 131072);
+	var2 = var2 + (((int64_t) compensationParameters.dig_p4) * 34359738368);
+	var1 = ((var1 * var1 * (int64_t) compensationParameters.dig_p3) / 256)
+			+ ((var1 * (int64_t) compensationParameters.dig_p2) * 4096);
+	var1 = ((INT64_C(0x800000000000) + var1)
+			* ((int64_t) compensationParameters.dig_p1)) / 8589934592;
+	if (var1 == 0)
+	{
+		return 0;
+	}
+	p = 1048576 - uncomp_pres;
+	p = (((((p * 2147483648U)) - var2) * 3125) / var1);
+	var1 = (((int64_t) compensationParameters.dig_p9) * (p / 8192) * (p / 8192))
+			/ 33554432;
+	var2 = (((int64_t) compensationParameters.dig_p8) * p) / 524288;
+	p = ((p + var1 + var2) / 256)
+			+ (((int64_t) compensationParameters.dig_p7) * 16);
+	return (uint32_t) p;
+}
 void BMP280Measure()
 {
 	uint8_t data[6];
@@ -204,8 +255,8 @@ void BMP280Measure()
 	int32_t adc_P = data[0] << 12 | data[1] << 4 | data[2] >> 4;
 	int32_t adc_T = data[3] << 12 | data[4] << 4 | data[5] >> 4;
 
-	// measurement.temperature = (float) compensate_temperature(adc_T) / 100.0;
-	// measurement.pressure = (float) compensate_pressure(adc_P) / 256.0;
+	measurement.temperature = (float) compensate_temperature(adc_T) / 100.0;
+	measurement.pressure = (float) compensate_pressure(adc_P) / 256.0;
 
 	if (p_reference > 0)
 	{
